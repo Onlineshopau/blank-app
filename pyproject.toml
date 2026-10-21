@@ -10,3 +10,6 @@ dependencies = [
 
 [tool.uv]
 package = false
+# Security: streamlit caps pillow<13, but pillow 13.0.0 fixes 8 CVEs.
+# Verified streamlit st.image works with pillow 13. Remove once streamlit allows it.
+override-dependencies = ["pillow>=13.0.0"]
