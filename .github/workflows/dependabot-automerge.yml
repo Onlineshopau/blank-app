@@ -1,0 +1,30 @@
+# Auto-merges Dependabot patch/minor updates only after the app runs cleanly.
+# Major updates are never auto-merged, so verified fixes stay locked.
+name: Dependabot auto-merge
+on: pull_request
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  automerge:
+    if: github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - id: meta
+        uses: dependabot/fetch-metadata@v2
+      - if: steps.meta.outputs.update-type != 'version-update:semver-major'
+        uses: actions/checkout@v4
+      - if: steps.meta.outputs.update-type != 'version-update:semver-major'
+        uses: astral-sh/setup-uv@v6
+      - name: Smoke-test app
+        if: steps.meta.outputs.update-type != 'version-update:semver-major'
+        run: |
+          uv sync --frozen
+          uv run python -c "from streamlit.testing.v1 import AppTest; at=AppTest.from_file('streamlit_app.py').run(); assert not at.exception, at.exception"
+      - name: Merge
+        if: steps.meta.outputs.update-type != 'version-update:semver-major'
+        run: gh pr merge --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
